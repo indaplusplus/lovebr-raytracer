@@ -3,6 +3,7 @@ package se.lovebrandefelt.raytracer;
 public class Camera {
   private Vector3 position;
   private Vector3 direction;
+  private double viewDistance;
   private double viewWidth;
   private double viewHeight;
   private double viewRotation;
@@ -13,6 +14,7 @@ public class Camera {
   public Camera(
       Vector3 position,
       Vector3 direction,
+      double viewDistance,
       double viewWidth,
       double viewHeight,
       double viewRotation,
@@ -20,34 +22,36 @@ public class Camera {
       int imageHeight) {
     this.position = position;
     this.direction = direction;
+    this.viewDistance = viewDistance;
     this.viewWidth = viewWidth;
     this.viewHeight = viewHeight;
     this.viewRotation = viewRotation;
     this.imageWidth = imageWidth;
     this.imageHeight = imageHeight;
+    Vector3 screenCenter = direction.normalize().multiply(viewDistance);
     this.pixelToWorldUnitMatrix =
-        Matrix.yRotationMatrix(Math.atan2(-direction.getZ(), direction.getX()) - Math.PI / 2)
+        Matrix.yRotationMatrix(Math.atan2(screenCenter.getZ(), screenCenter.getX()) - Math.PI / 2)
             .multiply(
                 Matrix.xRotationMatrix(
                     Math.atan2(
                         Math.sqrt(
-                            direction.getX() * direction.getX()
-                                + direction.getZ() * direction.getZ()),
-                        direction.getY())
+                            screenCenter.getX() * screenCenter.getX()
+                                + screenCenter.getZ() * screenCenter.getZ()),
+                        screenCenter.getY())
                         - Math.PI / 2));
   }
 
-  private Vector3 pixelToWorldUnit(int x, int y) {
-    return position.add(
-        new Vector3(
-            -viewWidth / 2 + x * imageWidth / viewWidth,
-            -viewHeight / 2 + y * imageHeight / viewHeight,
-            0)
-            .transform(pixelToWorldUnitMatrix));
+  private Vector3 pixelToDirection(int x, int y) {
+    return new Vector3(
+        -viewWidth / 2 + x / (imageWidth / viewWidth),
+        -viewHeight / 2 + y / (imageHeight / viewHeight),
+        viewDistance)
+        .transform(pixelToWorldUnitMatrix);
   }
 
-  //public Color pixelToColor(int x, int y) {
-  //}
+  public Ray rayThroughPixel(int x, int y) {
+    return new Ray(position, pixelToDirection(x, y));
+  }
 
   public Vector3 getPosition() {
     return position;

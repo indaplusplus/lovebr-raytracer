@@ -5,11 +5,6 @@ public class Sphere {
   private double radius;
   private Vector3 color;
 
-  public Sphere(Vector3 center, double radius) {
-    this.center = center;
-    this.radius = radius;
-  }
-
   public Sphere(Vector3 center, double radius, Vector3 color) {
     this.center = center;
     this.radius = radius;
