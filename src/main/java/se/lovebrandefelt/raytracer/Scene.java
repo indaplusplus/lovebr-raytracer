@@ -57,8 +57,16 @@ public class Scene {
       }
     }
     if (closestObject != null) {
-      double maxBrightness = Double.MIN_VALUE;
-      boolean illuminated = false;
+      Vector3 normal =
+          closestIntersection
+              .subtract(closestObject.getCenter().add(primaryRay.getDirection()))
+              .normalize();
+      Vector3 normalParallelDirection =
+          new Vector3(0, 0, 0)
+              .subtract(normal.multiply(primaryRay.getDirection().dotProduct(normal)));
+      Vector3 reflectedDirection =
+          normalParallelDirection.add(primaryRay.getDirection().add(normalParallelDirection));
+      double brightness = 0;
       for (LightSource lightSource : lightSources) {
         Ray shadowRay =
             new Ray(closestIntersection, lightSource.getPosition().subtract(closestIntersection));
@@ -77,22 +85,22 @@ public class Scene {
           }
         }
         if (!inShadow) {
-          illuminated = true;
-          Vector3 normal = closestIntersection.subtract(closestObject.getCenter()).normalize();
-          double brightness =
+          brightness +=
               lightSource.getBrightness()
-                  * (normal.dotProduct(shadowRay.getDirection().normalize()) + 1)
+                  * (reflectedDirection.normalize().dotProduct(shadowRay.getDirection().normalize())
+                  + 1)
                   / 2;
-          if (brightness > maxBrightness) {
-            maxBrightness = brightness;
-          }
         }
       }
-      if (illuminated) {
-        return closestObject.getColor().multiply(maxBrightness);
-      } else {
-        return closestObject.getColor().multiply(ambientLight);
-      }
+      Vector3 result =
+          closestObject
+              .getColor()
+              .multiply(
+                  Math.max(
+                      brightness,
+                      ambientLight * (reflectedDirection.normalize().dotProduct(normal) + 1) / 2));
+      return new Vector3(
+          Math.min(result.getX(), 1), Math.min(result.getY(), 1), Math.min(result.getZ(), 1));
     }
     return background.multiply(ambientLight);
   }

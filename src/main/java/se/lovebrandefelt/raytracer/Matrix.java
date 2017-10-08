@@ -43,6 +43,21 @@ public class Matrix {
         });
   }
 
+  public static Matrix rotationMatrix(Vector3 axis, double angle) {
+    Vector3 normalized = axis.normalize();
+    double x = normalized.getX();
+    double y = normalized.getY();
+    double z = normalized.getZ();
+    double sin = Math.sin(angle);
+    double cos = Math.cos(angle);
+    return new Matrix(
+        new double[][] {
+            {cos + x * x * (1 - cos), x * y * (1 - cos) - z * sin, x * z * (1 - cos) + y * sin},
+            {y * x * (1 - cos) + z * sin, cos + y * y * (1 - cos), y * z * (1 - cos) - x * sin},
+            {z * x * (1 - cos) - y * sin, z * y * (1 - cos) + x * sin, cos + z * z * (1 - cos)}
+        });
+  }
+
   public Matrix multiply(Matrix other) {
     double[][] result = new double[height()][other.width()];
     for (int row = 0; row < result.length; row++) {
