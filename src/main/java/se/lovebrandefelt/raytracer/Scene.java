@@ -94,7 +94,7 @@ public class Scene {
         return closestObject.getColor().multiply(ambientLight);
       }
     }
-    return background;
+    return background.multiply(ambientLight);
   }
 
   public void addObject(Sphere object) {
