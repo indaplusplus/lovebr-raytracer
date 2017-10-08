@@ -7,10 +7,9 @@ public class Camera {
   private double viewWidth;
   private double viewHeight;
   private double viewRotation;
+  private double pixelToWorldUnitRatio;
   private int imageWidth;
   private int imageHeight;
-  private double pixelToWorldUnitWidthRatio;
-  private double pixelToWorldUnitHeightRatio;
   private Matrix pixelToWorldUnitMatrix;
 
   public Camera(
@@ -20,21 +19,19 @@ public class Camera {
       double viewWidth,
       double viewHeight,
       double viewRotation,
-      int imageWidth,
-      int imageHeight) {
+      double pixelToWorldUnitRatio) {
     this.position = position;
     this.direction = direction;
     this.viewDistance = viewDistance;
+    this.viewRotation = viewRotation;
     this.viewWidth = viewWidth;
     this.viewHeight = viewHeight;
-    this.viewRotation = viewRotation;
-    this.imageWidth = imageWidth;
-    this.imageHeight = imageHeight;
+    this.pixelToWorldUnitRatio = pixelToWorldUnitRatio;
+    this.imageWidth = (int) (viewWidth * pixelToWorldUnitRatio);
+    this.imageHeight = (int) (viewHeight * pixelToWorldUnitRatio);
     Vector3 screenCenter = direction.normalize().multiply(viewDistance);
-    this.pixelToWorldUnitWidthRatio = (imageWidth / viewWidth);
-    this.pixelToWorldUnitHeightRatio = (imageHeight / viewHeight);
     this.pixelToWorldUnitMatrix =
-        Matrix.yRotationMatrix(Math.PI / 2 - Math.atan2(screenCenter.getZ(), screenCenter.getX()))
+        Matrix.yRotationMatrix(Math.atan2(screenCenter.getZ(), screenCenter.getX()) - Math.PI / 2)
             .multiply(
                 Matrix.xRotationMatrix(
                     Math.atan2(
@@ -42,13 +39,13 @@ public class Camera {
                             screenCenter.getX() * screenCenter.getX()
                                 + screenCenter.getZ() * screenCenter.getZ()),
                         screenCenter.getY())
-                        - Math.PI / 2));
+                        - Math.PI / 2)).multiply(Matrix.zRotationMatrix(viewRotation));
   }
 
   private Vector3 pixelToDirection(double x, double y) {
     return new Vector3(
-        -viewWidth / 2 + x / pixelToWorldUnitWidthRatio,
-        -viewHeight / 2 + y / pixelToWorldUnitHeightRatio,
+        -viewWidth / 2 + x / pixelToWorldUnitRatio,
+        -viewHeight / 2 + y / pixelToWorldUnitRatio,
         viewDistance)
         .transform(pixelToWorldUnitMatrix);
   }
@@ -81,6 +78,10 @@ public class Camera {
     return viewRotation;
   }
 
+  public double getPixelToWorldUnitRatio() {
+    return pixelToWorldUnitRatio;
+  }
+
   public int getImageWidth() {
     return imageWidth;
   }
@@ -89,11 +90,7 @@ public class Camera {
     return imageHeight;
   }
 
-  public double getPixelToWorldUnitWidthRatio() {
-    return pixelToWorldUnitWidthRatio;
-  }
-
-  public double getPixelToWorldUnitHeightRatio() {
-    return pixelToWorldUnitHeightRatio;
+  public Matrix getPixelToWorldUnitMatrix() {
+    return pixelToWorldUnitMatrix;
   }
 }

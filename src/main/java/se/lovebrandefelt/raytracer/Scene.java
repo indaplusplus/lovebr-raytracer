@@ -67,9 +67,7 @@ public class Scene {
           List<Vector3> intersections = shadowRay.intersections(object);
           for (int i = 0; i < intersections.size(); i++) {
             if (intersections.get(i).subtract(closestIntersection).norm()
-                < 2
-                / (camera.getPixelToWorldUnitWidthRatio()
-                + camera.getPixelToWorldUnitHeightRatio())) {
+                < 1 / camera.getPixelToWorldUnitRatio()) {
               intersections.remove(i);
             }
           }
@@ -81,9 +79,10 @@ public class Scene {
         if (!inShadow) {
           illuminated = true;
           Vector3 normal = closestIntersection.subtract(closestObject.getCenter()).normalize();
-          double brightness = lightSource.getBrightness()
-              * (normal.dotProduct(shadowRay.getDirection().normalize()) + 1)
-              / 2;
+          double brightness =
+              lightSource.getBrightness()
+                  * (normal.dotProduct(shadowRay.getDirection().normalize()) + 1)
+                  / 2;
           if (brightness > maxBrightness) {
             maxBrightness = brightness;
           }
