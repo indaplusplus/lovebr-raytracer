@@ -1,5 +1,8 @@
 package se.lovebrandefelt.raytracer;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Ray {
   private Vector3 origin;
   private Vector3 direction;
@@ -9,22 +12,31 @@ public class Ray {
     this.direction = direction;
   }
 
-  public Vector3[] intersections(Sphere sphere) {
+  public List<Vector3> intersections(Sphere sphere) {
+    List<Vector3> result = new ArrayList<>();
     Vector3 difference = origin.subtract(sphere.getCenter());
     double a = direction.dotProduct(direction);
     double b = direction.multiply(2).dotProduct(difference);
     double c = difference.dotProduct(difference) - sphere.getRadius() * sphere.getRadius();
     double discriminant = b * b - 4 * a * c;
-    if (discriminant < 0) {
-      return new Vector3[] {};
-    }
     if (discriminant > 0) {
-      return new Vector3[] {
-          origin.add(direction.multiply((-b + Math.sqrt(discriminant)) / (2 * a))),
-          origin.add(direction.multiply((-b - Math.sqrt(discriminant)) / (2 * a)))
-      };
+      double q =
+          (b > 0) ? -0.5 * (b + Math.sqrt(discriminant)) : -0.5 * (b - Math.sqrt(discriminant));
+      double x0 = q / a;
+      double x1 = c / q;
+      if (x0 > 0) {
+        result.add(origin.add(direction.multiply(x0)));
+      }
+      if (x1 > 0) {
+        result.add(origin.add(direction.multiply(x1)));
+      }
+    } else if (discriminant == 0) {
+      double x = -0.5 * b / a;
+      if (x > 0) {
+        result.add(origin.add(direction.multiply(x)));
+      }
     }
-    return new Vector3[] {origin.add(direction.multiply(-b / (2 * a)))};
+    return result;
   }
 
   public Vector3 getOrigin() {

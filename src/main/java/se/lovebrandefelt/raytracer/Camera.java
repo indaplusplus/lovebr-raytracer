@@ -9,6 +9,8 @@ public class Camera {
   private double viewRotation;
   private int imageWidth;
   private int imageHeight;
+  private double pixelToWorldUnitWidthRatio;
+  private double pixelToWorldUnitHeightRatio;
   private Matrix pixelToWorldUnitMatrix;
 
   public Camera(
@@ -29,8 +31,10 @@ public class Camera {
     this.imageWidth = imageWidth;
     this.imageHeight = imageHeight;
     Vector3 screenCenter = direction.normalize().multiply(viewDistance);
+    this.pixelToWorldUnitWidthRatio = (imageWidth / viewWidth);
+    this.pixelToWorldUnitHeightRatio = (imageHeight / viewHeight);
     this.pixelToWorldUnitMatrix =
-        Matrix.yRotationMatrix(Math.atan2(screenCenter.getZ(), screenCenter.getX()) - Math.PI / 2)
+        Matrix.yRotationMatrix(Math.PI / 2 - Math.atan2(screenCenter.getZ(), screenCenter.getX()))
             .multiply(
                 Matrix.xRotationMatrix(
                     Math.atan2(
@@ -41,15 +45,15 @@ public class Camera {
                         - Math.PI / 2));
   }
 
-  private Vector3 pixelToDirection(int x, int y) {
+  private Vector3 pixelToDirection(double x, double y) {
     return new Vector3(
-        -viewWidth / 2 + x / (imageWidth / viewWidth),
-        -viewHeight / 2 + y / (imageHeight / viewHeight),
+        -viewWidth / 2 + x / pixelToWorldUnitWidthRatio,
+        -viewHeight / 2 + y / pixelToWorldUnitHeightRatio,
         viewDistance)
         .transform(pixelToWorldUnitMatrix);
   }
 
-  public Ray rayThroughPixel(int x, int y) {
+  public Ray rayThroughPixel(double x, double y) {
     return new Ray(position, pixelToDirection(x, y));
   }
 
@@ -59,6 +63,10 @@ public class Camera {
 
   public Vector3 getDirection() {
     return direction;
+  }
+
+  public double getViewDistance() {
+    return viewDistance;
   }
 
   public double getViewWidth() {
@@ -79,5 +87,13 @@ public class Camera {
 
   public int getImageHeight() {
     return imageHeight;
+  }
+
+  public double getPixelToWorldUnitWidthRatio() {
+    return pixelToWorldUnitWidthRatio;
+  }
+
+  public double getPixelToWorldUnitHeightRatio() {
+    return pixelToWorldUnitHeightRatio;
   }
 }
