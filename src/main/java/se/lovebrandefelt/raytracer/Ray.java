@@ -40,19 +40,13 @@ public class Ray {
       }
     } else if (object instanceof Plane) {
       Plane plane = (Plane) object;
-      double directionProduct = direction.dotProduct(plane.getNormal());
+      double directionProduct = direction.normalize().dotProduct(plane.getNormal().normalize());
       if (directionProduct != 0) {
-        double t = plane
-            .getPosition()
-            .subtract(origin)
-            .dotProduct(
-                plane
-                    .getNormal()
-                    .multiply(1 / directionProduct));
+        double t =
+            plane.getPosition().subtract(origin).dotProduct(plane.getNormal().normalize())
+                / directionProduct;
         if (t > 0) {
-          result.add(
-              origin.add(
-                  direction.multiply(t)));
+          result.add(origin.add(direction.multiply(t)));
         }
       }
     }
