@@ -81,7 +81,7 @@ public class Scene {
 
   public Vector3 hitColor(Ray ray, Hit hit, int recursionDepth) {
     Vector3 color = new Vector3(0, 0, 0);
-    Vector3 normal = hit.getObject().normal(ray.getDirection(), hit.getIntersection());
+    Vector3 normal = hit.getObject().normal(ray.getDirection(), hit.getIntersection()).normalize();
     for (LightSource lightSource : lightSources) {
       Ray shadowRay =
           new Ray(hit.getIntersection(), lightSource.getPosition().subtract(hit.getIntersection()));
@@ -124,9 +124,11 @@ public class Scene {
       Hit reflectionHit = closestHit(reflectionRay);
       if (reflectionHit.getObject() != null) {
         color =
-            color.add(
-                hitColor(reflectionRay, reflectionHit, recursionDepth + 1)
-                    .multiply(hit.getObject().getReflexivity()));
+            color
+                .multiply(1 - hit.getObject().getReflexivity())
+                .add(
+                    hitColor(reflectionRay, reflectionHit, recursionDepth + 1)
+                        .multiply(hit.getObject().getReflexivity()));
       }
     }
     return color;
