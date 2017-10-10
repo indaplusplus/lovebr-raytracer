@@ -11,7 +11,7 @@ import java.util.List;
 import javax.imageio.ImageIO;
 
 public class Scene {
-  private List<Sphere> objects;
+  private List<Object> objects;
   private List<LightSource> lightSources;
   private double ambientLight;
   private Camera camera;
@@ -57,9 +57,9 @@ public class Scene {
 
   public Hit closestHit(Ray ray) {
     double minDistance = Double.MAX_VALUE;
-    Sphere closestObject = null;
+    Object closestObject = null;
     Vector3 closestIntersection = null;
-    for (Sphere object : objects) {
+    for (Object object : objects) {
       List<Vector3> intersections = ray.intersections(object);
       for (int i = 0; i < intersections.size(); i++) {
         if (intersections.get(i).subtract(ray.getOrigin()).norm()
@@ -81,16 +81,13 @@ public class Scene {
 
   public Vector3 hitColor(Ray ray, Hit hit, int recursionDepth) {
     Vector3 color = new Vector3(0, 0, 0);
-    Vector3 normal =
-        hit.getIntersection()
-            .subtract(hit.getObject().getCenter().add(ray.getDirection()))
-            .normalize();
+    Vector3 normal = hit.getObject().normal(ray.getDirection(), hit.getIntersection());
     for (LightSource lightSource : lightSources) {
       Ray shadowRay =
           new Ray(hit.getIntersection(), lightSource.getPosition().subtract(hit.getIntersection()));
       boolean inShadow = normal.dotProduct(shadowRay.getDirection().normalize()) < 0;
       if (!inShadow) {
-        for (Sphere object : objects) {
+        for (Object object : objects) {
           List<Vector3> intersections = shadowRay.intersections(object);
           for (int i = 0; i < intersections.size(); i++) {
             if (intersections.get(i).subtract(hit.getIntersection()).norm()
@@ -104,15 +101,19 @@ public class Scene {
           }
         }
       }
-      color =
-          color.add(
-              inShadow
-                  ? hit.getObject().getColor().multiply(ambientLight)
-                  : hit.getObject()
-                  .getColor()
-                  .multiply(
-                      ambientLight + lightSource.getBrightness()
-                          * normal.dotProduct(shadowRay.getDirection().normalize())));
+      if (!inShadow) {
+        color =
+            color.add(
+                hit.getObject()
+                    .getColor()
+                    .multiply(
+                        ambientLight
+                            + lightSource.getBrightness()
+                            * normal.dotProduct(shadowRay.getDirection().normalize())));
+      }
+    }
+    if (color.equals(new Vector3(0, 0, 0))) {
+      color = color.add(hit.getObject().getColor().multiply(ambientLight));
     }
     if (recursionDepth < reflectionDepth && hit.getObject().getReflexivity() > 0) {
       Vector3 normalizedRay = ray.getDirection().normalize();
@@ -131,7 +132,7 @@ public class Scene {
     return color;
   }
 
-  public void addObject(Sphere object) {
+  public void addObject(Object object) {
     objects.add(object);
   }
 

@@ -1,15 +1,15 @@
 package se.lovebrandefelt.raytracer;
 
 public class Hit {
-  private Sphere object;
+  private Object object;
   private Vector3 intersection;
 
-  public Hit(Sphere object, Vector3 intersection) {
+  public Hit(Object object, Vector3 intersection) {
     this.object = object;
     this.intersection = intersection;
   }
 
-  public Sphere getObject() {
+  public Object getObject() {
     return object;
   }
 
