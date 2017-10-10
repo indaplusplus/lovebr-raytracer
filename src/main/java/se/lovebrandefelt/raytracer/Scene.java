@@ -37,9 +37,9 @@ public class Scene {
             x,
             y,
             new Color(
-                (float) Math.min(color.getX(), 1),
-                (float) Math.min(color.getY(), 1),
-                (float) Math.min(color.getZ(), 1))
+                (float) (1 - Math.exp(-color.getX())),
+                (float) (1 - Math.exp(-color.getY())),
+                (float) (1 - Math.exp(-color.getZ())))
                 .getRGB());
       }
     }
