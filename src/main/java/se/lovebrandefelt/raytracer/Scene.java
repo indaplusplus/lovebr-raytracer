@@ -16,13 +16,15 @@ public class Scene {
   private double ambientLight;
   private Camera camera;
   private Vector3 background;
+  private int reflectionDepth;
 
-  public Scene(double ambientLight, Camera camera, Vector3 background) {
+  public Scene(double ambientLight, Camera camera, Vector3 background, int reflectionDepth) {
     this.objects = new ArrayList<>();
     this.lightSources = new ArrayList<>();
     this.ambientLight = ambientLight;
     this.camera = camera;
     this.background = background;
+    this.reflectionDepth = reflectionDepth;
   }
 
   public void writeToPng(File file) throws IOException {
@@ -34,7 +36,11 @@ public class Scene {
         image.setRGB(
             x,
             y,
-            new Color((float) color.getX(), (float) color.getY(), (float) color.getZ()).getRGB());
+            new Color(
+                (float) Math.min(color.getX(), 1),
+                (float) Math.min(color.getY(), 1),
+                (float) Math.min(color.getZ(), 1))
+                .getRGB());
       }
     }
     ImageIO.write(image, "png", file);
@@ -42,13 +48,27 @@ public class Scene {
 
   public Vector3 pixelToColor(double x, double y) {
     Ray primaryRay = camera.rayThroughPixel(x, y);
+    Hit hit = closestHit(primaryRay);
+    if (hit.getObject() != null) {
+      return hitColor(primaryRay, hit, 0);
+    }
+    return background.multiply(ambientLight);
+  }
+
+  public Hit closestHit(Ray ray) {
     double minDistance = Double.MAX_VALUE;
     Sphere closestObject = null;
     Vector3 closestIntersection = null;
     for (Sphere object : objects) {
-      List<Vector3> intersections = primaryRay.intersections(object);
+      List<Vector3> intersections = ray.intersections(object);
+      for (int i = 0; i < intersections.size(); i++) {
+        if (intersections.get(i).subtract(ray.getOrigin()).norm()
+            < 1 / camera.getPixelToWorldUnitRatio()) {
+          intersections.remove(i);
+        }
+      }
       for (Vector3 intersection : intersections) {
-        double distance = intersection.subtract(primaryRay.getOrigin()).norm();
+        double distance = intersection.subtract(ray.getOrigin()).norm();
         if (distance < minDistance) {
           minDistance = distance;
           closestObject = object;
@@ -56,25 +76,24 @@ public class Scene {
         }
       }
     }
-    if (closestObject != null) {
-      Vector3 normal =
-          closestIntersection
-              .subtract(closestObject.getCenter().add(primaryRay.getDirection()))
-              .normalize();
-      Vector3 normalParallelDirection =
-          new Vector3(0, 0, 0)
-              .subtract(normal.multiply(primaryRay.getDirection().dotProduct(normal)));
-      Vector3 reflectedDirection =
-          normalParallelDirection.add(primaryRay.getDirection().add(normalParallelDirection));
-      double brightness = 0;
-      for (LightSource lightSource : lightSources) {
-        Ray shadowRay =
-            new Ray(closestIntersection, lightSource.getPosition().subtract(closestIntersection));
-        boolean inShadow = false;
+    return new Hit(closestObject, closestIntersection);
+  }
+
+  public Vector3 hitColor(Ray ray, Hit hit, int recursionDepth) {
+    Vector3 color = new Vector3(0, 0, 0);
+    Vector3 normal =
+        hit.getIntersection()
+            .subtract(hit.getObject().getCenter().add(ray.getDirection()))
+            .normalize();
+    for (LightSource lightSource : lightSources) {
+      Ray shadowRay =
+          new Ray(hit.getIntersection(), lightSource.getPosition().subtract(hit.getIntersection()));
+      boolean inShadow = normal.dotProduct(shadowRay.getDirection().normalize()) < 0;
+      if (!inShadow) {
         for (Sphere object : objects) {
           List<Vector3> intersections = shadowRay.intersections(object);
           for (int i = 0; i < intersections.size(); i++) {
-            if (intersections.get(i).subtract(closestIntersection).norm()
+            if (intersections.get(i).subtract(hit.getIntersection()).norm()
                 < 1 / camera.getPixelToWorldUnitRatio()) {
               intersections.remove(i);
             }
@@ -84,25 +103,32 @@ public class Scene {
             break;
           }
         }
-        if (!inShadow) {
-          brightness +=
-              lightSource.getBrightness()
-                  * (reflectedDirection.normalize().dotProduct(shadowRay.getDirection().normalize())
-                  + 1)
-                  / 2;
-        }
       }
-      Vector3 result =
-          closestObject
-              .getColor()
-              .multiply(
-                  Math.max(
-                      brightness,
-                      ambientLight * (reflectedDirection.normalize().dotProduct(normal) + 1) / 2));
-      return new Vector3(
-          Math.min(result.getX(), 1), Math.min(result.getY(), 1), Math.min(result.getZ(), 1));
+      color =
+          color.add(
+              inShadow
+                  ? hit.getObject().getColor().multiply(ambientLight)
+                  : hit.getObject()
+                  .getColor()
+                  .multiply(
+                      ambientLight + lightSource.getBrightness()
+                          * normal.dotProduct(shadowRay.getDirection().normalize())));
     }
-    return background.multiply(ambientLight);
+    if (recursionDepth < reflectionDepth && hit.getObject().getReflexivity() > 0) {
+      Vector3 normalizedRay = ray.getDirection().normalize();
+      Vector3 normalParallelRay = normal.multiply(normalizedRay.dotProduct(normal));
+      Vector3 normalPerpendicularRay = normalizedRay.subtract(normalParallelRay);
+      Vector3 reflectedDirection = normalPerpendicularRay.subtract(normalParallelRay);
+      Ray reflectionRay = new Ray(hit.getIntersection(), reflectedDirection);
+      Hit reflectionHit = closestHit(reflectionRay);
+      if (reflectionHit.getObject() != null) {
+        color =
+            color.add(
+                hitColor(reflectionRay, reflectionHit, recursionDepth + 1)
+                    .multiply(hit.getObject().getReflexivity()));
+      }
+    }
+    return color;
   }
 
   public void addObject(Sphere object) {

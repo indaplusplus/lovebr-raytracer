@@ -31,7 +31,7 @@ public class Camera {
     this.imageHeight = (int) (viewHeight * pixelToWorldUnitRatio);
     Vector3 screenCenter = direction.normalize().multiply(viewDistance);
     this.pixelToWorldUnitMatrix =
-        Matrix.yRotationMatrix(Math.atan2(screenCenter.getZ(), screenCenter.getX()) - Math.PI / 2)
+        Matrix.zRotationMatrix(viewRotation)
             .multiply(
                 Matrix.xRotationMatrix(
                     Math.atan2(
@@ -39,7 +39,10 @@ public class Camera {
                             screenCenter.getX() * screenCenter.getX()
                                 + screenCenter.getZ() * screenCenter.getZ()),
                         screenCenter.getY())
-                        - Math.PI / 2)).multiply(Matrix.zRotationMatrix(viewRotation));
+                        - Math.PI / 2))
+            .multiply(
+                Matrix.yRotationMatrix(
+                    Math.atan2(screenCenter.getZ(), screenCenter.getX()) - Math.PI / 2));
   }
 
   private Vector3 pixelToDirection(double x, double y) {
