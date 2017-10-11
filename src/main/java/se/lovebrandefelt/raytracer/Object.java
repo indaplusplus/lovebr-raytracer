@@ -2,12 +2,12 @@ package se.lovebrandefelt.raytracer;
 
 public abstract class Object {
   private Vector3 color;
-  private double reflexivity;
+  private double diffusivity;
   private double refractionIndex;
 
-  public Object(Vector3 color, double reflexivity, double refractionIndex) {
+  public Object(Vector3 color, double diffusivity, double refractionIndex) {
     this.color = color;
-    this.reflexivity = reflexivity;
+    this.diffusivity = diffusivity;
     this.refractionIndex = refractionIndex;
   }
 
@@ -21,12 +21,12 @@ public abstract class Object {
     this.color = color;
   }
 
-  public double getReflexivity() {
-    return reflexivity;
+  public double getDiffusivity() {
+    return diffusivity;
   }
 
-  protected void setReflexivity(double reflexivity) {
-    this.reflexivity = reflexivity;
+  protected void setDiffusivity(double diffusivity) {
+    this.diffusivity = diffusivity;
   }
 
   public double getRefractionIndex() {

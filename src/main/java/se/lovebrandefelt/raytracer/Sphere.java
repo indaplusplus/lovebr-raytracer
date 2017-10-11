@@ -5,15 +5,15 @@ public class Sphere extends Object {
   private double radius;
 
   public Sphere(
-      Vector3 center, double radius, Vector3 color, double reflexivity, double refractionIndex) {
-    super(color, reflexivity, refractionIndex);
+      Vector3 center, double radius, Vector3 color, double diffusivity, double refractionIndex) {
+    super(color, diffusivity, refractionIndex);
     this.center = center;
     this.radius = radius;
   }
 
   @Override
   public Vector3 normal(Vector3 incomingDirection, Vector3 intersection) {
-    return intersection.subtract(center.add(incomingDirection)).normalize();
+    return intersection.subtract(center).normalize();
   }
 
   public Vector3 getCenter() {

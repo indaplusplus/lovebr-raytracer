@@ -5,8 +5,8 @@ public class Plane extends Object {
   private Vector3 normal;
 
   public Plane(
-      Vector3 position, Vector3 normal, Vector3 color, double reflexivity, double refractionIndex) {
-    super(color, reflexivity, refractionIndex);
+      Vector3 position, Vector3 normal, Vector3 color, double diffusivity, double refractionIndex) {
+    super(color, diffusivity, refractionIndex);
     this.position = position;
     this.normal = normal;
   }

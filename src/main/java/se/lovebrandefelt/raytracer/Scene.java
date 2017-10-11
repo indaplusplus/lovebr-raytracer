@@ -84,14 +84,23 @@ public class Scene {
     Vector3 normal = hit.getObject().normal(ray.getDirection(), hit.getIntersection()).normalize();
     for (LightSource lightSource : lightSources) {
       Ray shadowRay =
-          new Ray(hit.getIntersection(), lightSource.getPosition().subtract(hit.getIntersection()));
+          new Ray(
+              hit.getIntersection(),
+              lightSource.getPosition().subtract(hit.getIntersection()),
+              1,
+              false);
       boolean inShadow = normal.dotProduct(shadowRay.getDirection().normalize()) < 0;
       if (!inShadow) {
         for (Object object : objects) {
           List<Vector3> intersections = shadowRay.intersections(object);
           for (int i = 0; i < intersections.size(); i++) {
             if (intersections.get(i).subtract(hit.getIntersection()).norm()
-                < 1 / camera.getPixelToWorldUnitRatio()) {
+                < 1 / camera.getPixelToWorldUnitRatio()
+                || lightSource
+                .getPosition()
+                .subtract(intersections.get(i))
+                .dotProduct(shadowRay.getDirection())
+                < 0) {
               intersections.remove(i);
             }
           }
@@ -115,20 +124,74 @@ public class Scene {
     if (color.equals(new Vector3(0, 0, 0))) {
       color = color.add(hit.getObject().getColor().multiply(ambientLight));
     }
-    if (recursionDepth < reflectionDepth && hit.getObject().getReflexivity() > 0) {
+    if (recursionDepth < reflectionDepth && hit.getObject().getDiffusivity() < 1) {
       Vector3 normalizedRay = ray.getDirection().normalize();
-      Vector3 normalParallelRay = normal.multiply(normalizedRay.dotProduct(normal));
+      double normalParallelProjection = normalizedRay.dotProduct(normal);
+      Vector3 normalParallelRay = normal.multiply(normalParallelProjection);
       Vector3 normalPerpendicularRay = normalizedRay.subtract(normalParallelRay);
       Vector3 reflectedDirection = normalPerpendicularRay.subtract(normalParallelRay);
-      Ray reflectionRay = new Ray(hit.getIntersection(), reflectedDirection);
+      double n1 = ray.getCurrentRefractionIndex();
+      double n2 = ray.isInsideObject() ? 1 : hit.getObject().getRefractionIndex();
+      double cosI = Math.abs(normalParallelProjection);
+      double sinI = Math.sqrt(1 - cosI * cosI);
+      double sinT = n1 / n2 * sinI;
+      double reflectance;
+      double cosT;
+      if (sinT * sinT >= 1) {
+        reflectance = 1;
+        cosT = 0;
+      } else {
+        cosT = Math.sqrt(1 - sinT * sinT);
+        double reflectancePerpendicular = (n2 * cosT - n1 * cosI) / (n2 * cosT + n1 * cosI);
+        double reflectanceParallel = (n1 * cosT - n2 * cosI) / (n1 * cosT + n2 * cosI);
+        reflectance =
+            0.5
+                * (reflectancePerpendicular * reflectancePerpendicular
+                + reflectanceParallel * reflectanceParallel);
+      }
+      Ray reflectionRay =
+          new Ray(hit.getIntersection(), reflectedDirection, n1, ray.isInsideObject());
       Hit reflectionHit = closestHit(reflectionRay);
+      Ray refractionRay =
+          new Ray(
+              hit.getIntersection(),
+              normalizedRay
+                  .add(normal.multiply(cosI))
+                  .multiply(n1 / n2)
+                  .add(normal.multiply(-cosT)),
+              n2,
+              !ray.isInsideObject());
+      Hit refractionHit = closestHit(refractionRay);
       if (reflectionHit.getObject() != null) {
+        if (refractionHit.getObject() != null) {
+          color =
+              color
+                  .multiply(hit.getObject().getDiffusivity())
+                  .add(
+                      hitColor(reflectionRay, reflectionHit, recursionDepth + 1)
+                          .multiply((1 - hit.getObject().getDiffusivity()) * reflectance))
+                  .add(
+                      hitColor(refractionRay, refractionHit, recursionDepth + 1)
+                          .multiply((1 - hit.getObject().getDiffusivity()) * cosT));
+        } else {
+          color =
+              color
+                  .multiply(
+                      hit.getObject().getDiffusivity()
+                          + (1 - hit.getObject().getDiffusivity()) * cosT)
+                  .add(
+                      hitColor(reflectionRay, reflectionHit, recursionDepth + 1)
+                          .multiply((1 - hit.getObject().getDiffusivity()) * reflectance));
+        }
+      } else if (refractionHit.getObject() != null) {
         color =
             color
-                .multiply(1 - hit.getObject().getReflexivity())
+                .multiply(
+                    hit.getObject().getDiffusivity()
+                        + (1 - hit.getObject().getDiffusivity()) * reflectance)
                 .add(
-                    hitColor(reflectionRay, reflectionHit, recursionDepth + 1)
-                        .multiply(hit.getObject().getReflexivity()));
+                    hitColor(refractionRay, refractionHit, recursionDepth + 1)
+                        .multiply((1 - hit.getObject().getDiffusivity()) * cosT));
       }
     }
     return color;

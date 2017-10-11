@@ -6,10 +6,14 @@ import java.util.List;
 public class Ray {
   private Vector3 origin;
   private Vector3 direction;
+  private double currentRefractionIndex;
+  private boolean insideObject;
 
-  public Ray(Vector3 origin, Vector3 direction) {
+  public Ray(Vector3 origin, Vector3 direction, double currentRefractionIndex, boolean insideObject) {
     this.origin = origin;
     this.direction = direction;
+    this.currentRefractionIndex = currentRefractionIndex;
+    this.insideObject = insideObject;
   }
 
   public List<Vector3> intersections(Object object) {
@@ -46,7 +50,7 @@ public class Ray {
             plane.getPosition().subtract(origin).dotProduct(plane.getNormal().normalize())
                 / directionProduct;
         if (t > 0) {
-          result.add(origin.add(direction.multiply(t)));
+          result.add(origin.add(direction.normalize().multiply(t)));
         }
       }
     }
@@ -59,5 +63,13 @@ public class Ray {
 
   public Vector3 getDirection() {
     return direction;
+  }
+
+  public double getCurrentRefractionIndex() {
+    return currentRefractionIndex;
+  }
+
+  public boolean isInsideObject() {
+    return insideObject;
   }
 }

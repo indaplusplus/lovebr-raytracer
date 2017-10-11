@@ -54,7 +54,7 @@ public class Camera {
   }
 
   public Ray rayThroughPixel(double x, double y) {
-    return new Ray(position, pixelToDirection(x, y));
+    return new Ray(position, pixelToDirection(x, y), 1, false);
   }
 
   public Vector3 getPosition() {
